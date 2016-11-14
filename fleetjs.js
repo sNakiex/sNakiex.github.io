@@ -27,293 +27,202 @@
     var redirectUri = "http://sNakiex.github.io/"; // client uri
     var clientId = "5ebd2d1231cf4adfb9d28bae86f03917"; // OAuth client id
     var csrfTokenName = clientId + "csrftoken";
-    var token; // OAuth token
+    var hashTokenName = clientId + "hash";
     var authorizationEndpoint = "https://login.eveonline.com/oauth/authorize/"; // OAuth endpoint
     var scopes = "publicData fleetRead";
-
-    // Client side templates
-    var contactListTemplate = Handlebars.compile($("#fleet-list-template").html());
-    var errorTemplate = Handlebars.compile($("#error-template").html());
-
-    // Notification request
-    var notificationRequest = undefined;
-    var notificationPollTimer = undefined;
-    var notificationStartIndex = 0;
-
-    // Cached uris
-    var searchUri;
-    var contactListUri;
-    var notificationUri;
-
-    // Cached contact list data
-    var contactList;
-
-    // Find contact in cached contact list
-    function getContact(name) {
-        var i;
-        for (i = 0; i < contactList.items.length; i++) {
-            var contact = contactList.items[i];
-            if (contact.contact.name === name) {
-                return contact;
-            }
-        }
-        return false;
-    }
-
-    // Remove contact from cached contact list
-    function removeContact(name) {
-        var i;
-        for (i = 0; i < contactList.items.length; i++) {
-            var contact = contactList.items[i];
-            if (contact.contact.name === name) {
-                contactList.items.splice(i, 1);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function ajaxGet(url, accept, success) {
-        accept = "application/" + accept + "+json, charset=utf-8";
-        $.ajax(url, {
-            headers: {
-                Accept: accept
-            },
-            success: success
+// Bind click handlers to link elements.
+    function bindLinks() {
+        $(".link").click(function(evt) {
+            evt.preventDefault();
+            window.location.hash = $(this).attr('href');
+            return false;
         });
     }
 
-    // Remove contact from cache and via api
-    function onClickRemove(evt) {
-        evt.preventDefault();
-        var name = $(evt.target).siblings(".name").html();
-        $.ajax($(evt.target).attr("href"), {
-            type: "DELETE",
-            success: function() {
-                // Request succeeded, remove contact from cache.
-                if (removeContact(name)) {
-                    renderContactList(contactList);
-                }
-            }
-        });
+    // True if value is an object.
+    function isObject(value) {
+        return value && typeof(value) === 'object';
     }
 
-    // Update contact when standing selection is changed
-    function onStandingChange(evt) {
-        updateContact(evt, {standing: standings[$(evt.target).val()]});
+    // True if value is an array.
+    function isArray(value) {
+        return value && Object.prototype.toString.apply(value) === '[object Array]';
     }
 
-    // Update contact when watched checkbox is clicked
-    function onClickWatched(evt) {
-        updateContact(evt, {watched: $(evt.target).attr("checked")});
-    }
-
-    // Show search dialog when add is clicked
-    function onClickAdd(evt) {
-        evt.preventDefault();
-        $("#searchDialog").dialog({
-            resizable: false,
-            modal:true,
-            buttons: {
-                OK: function() {
-
-                    // Get query from dialog
-                    var query = $("#query").val();
-
-                    // Search for resources with name matching query
-                    $.ajax(searchUri + "?name=" + query, {
-                        headers: {
-                            Accept: "application/vnd.ccp.eve.Collection-v1+json"
-                        },
-                        success: function(data) {
-
-                            // If no matches were found, return
-                            if (data.items.length <= 0) {
-                                $("#searchDialog").dialog("close");
-                                return;
-                            }
-
-                            // Create new contact from first result
-                            var newContact = {
-                                contact: {href: data.items[0].resource.href},
-                                standing: 0
-                            };
-
-                            // Add new contact to contact list
-                            $.ajax(contactListUri, {
-                                type: "POST",
-                                contentType: "application/vnd.ccp.eve.ContactCreate-v1+json",
-                                data: JSON.stringify(newContact),
-                                success: function() {
-
-                                    // Get new contact list from api
-                                    ajaxGet(contactListUri, "vnd.ccp.eve.ContactCollection-v1", renderContactList);
-                                }
-                            });
-
-                            // Close dialog
-                            $("#searchDialog").dialog("close");
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    // Request new contact list from api when paging links are clicked
-    function onClickPage(evt) {
-        evt.preventDefault();
-        window.location.hash = $(evt.target).attr('href');
-    }
-
-    // Cache and render contact list data then bind handlers to rendered elements
-    function renderContactList(list) {
-        contactList = list;
-        var templateData = $.extend({}, contactList, {href:contactListUri});
-        $("#wrapper").contents().remove();
-        $("#wrapper").append(contactListTemplate(templateData));
-        $(".standing").change(onStandingChange);
-        $(".remove").click(onClickRemove);
-        $(".watched").click(onClickWatched);
-        $(".page").click(onClickPage);
-        $("#add").click(onClickAdd);
-    }
-
-    // HACK! convert vnd.ccp.eve.ContactCreate-v1+json to as yet unnamed or properly documented
-    // format described here https://developers.eveonline.com/blog/article/crest-updates-for-january-2016
-    function convertContact(contact) {
-        return {
-            standing: contact.standing,
-            contactType: contact.contactType,
-            contact: contact.contact
-        }
-    }
-
-    // Update contact in cache and via api
-    function updateContact(evt, update) {
-        var name = $(evt.target).siblings(".name").html();
-        var contact = getContact(name);
-        if (contact === false) {
+    // True if value is an object containing only href and primitive properties.
+    function isLink(value) {
+        var prop;
+        if (! isObject(value)) {
             return false;
         }
-        var oldValue = $.extend({}, contact);
-        contact = $.extend(contact, update);
-
-        $.ajax(contact.href, {
-            type: "PUT",
-            // TODO: restore this once CREST is handling media types correctly again
-            // contentType: "application/vnd.ccp.eve.ContactCreate-v1+json",
-            contentType: "application/json",
-
-            // TODO: remove convertContact call once CREST is handling media types correctly again
-            data: JSON.stringify(convertContact(contact)),
-            error: function() {
-                // Request failed, restore original value.
-                contact = $.extend(contact, oldValue);
-                renderContactList(contactList);
+        if (value.href === undefined) {
+            return false;
+        }
+        for (prop in value) {
+            if (value.hasOwnProperty(prop)) {
+                if (isArray(value[prop])) {
+                    return false;
+                }
+                if (isObject(value[prop])) {
+                    return false;
+                }
             }
-        });
+        }
         return true;
     }
 
-    function createRequestObject() {
-        var result;
-        if (window.XMLHttpRequest) {
-            result = new XMLHttpRequest();
+    // Build text node from data.
+    function buildElementFromPrimitive(data) {
+        return String(data);
+    }
+
+    // Build link from data.
+    function buildLink(data, name) {
+        var link = $(document.createElement('a'))
+            .attr('href', data.href)
+            .addClass('name')
+            .addClass('link');
+        if(data.name !== undefined) {
+            $(link).append(data.name);
+        } else if(name !== undefined && name !== "href") {
+            $(link).append(name);
         } else {
-            result = new ActiveXObject("Microsoft.XMLHTTP");
+            $(link).append(link[0].pathname);
         }
-        if (!result) {
-            // TODO: error dialog...
-        }
-        return result;
+        return $(link);
     }
 
-    function requestNotifications() {
-        notificationRequest = createRequestObject();
-        notificationRequest.open('get', notificationUri, true);
-        notificationRequest.setRequestHeader("Authorization", "Bearer " + token);
-        notificationRequest.setRequestHeader("Accept", "application/vnd.ccp.eve.OnContactUpdate-v1+json, application/vnd.ccp.eve.OnContactDelete-v1+json");
-        notificationRequest.onreadystatechange = pollNotificationResponse;
-        notificationRequest.send(null);
-        notificationStartIndex = 0;
-        notificationPollTimer = setInterval(pollNotificationResponse, 1000);
-    }
-
-    function pollNotificationResponse() {
-
-        var i, line, lines;
-
-        // return if status is not OK or response is not ready
-        if (notificationRequest.readyState != 4 && notificationRequest.readyState != 3) {
-            return;
-        }
-        if (notificationRequest.readyState == 3 && notificationRequest.status != 200) {
-            return;
-        }
-        if (notificationRequest.readyState == 4 && notificationRequest.status != 200) {
-            clearInterval(notificationPollTimer);
-        }
-
-        // split responses and display any newly received messages
-        lines = notificationRequest.responseText.split("\n");
-        for (i = notificationStartIndex; i < lines.length; i += 1) {
-
-            line = $.trim(lines[i]);
-
-            if (line === "") {
-                continue;
+    // Build ordered list from array.
+    function buildListFromArray(data, schema) {
+        var i, list = document.createElement('ol');
+	$(list).attr('start', '0');
+        for(i = 0; i < data.length; i++) {
+            if(isLink(data[i])) {
+                $(list).prepend(
+                $(document.createElement('li'))
+		.addClass('arrayItem')
+		.append(buildLink(data[i])));
+            } else {
+                $(list).prepend(
+                $(document.createElement('li'))
+		.addClass('arrayItem')
+		.append(buildElement(data[i], schema)));
             }
+        }
+        return $(list);
+    }
 
-            // request new contact list on notification
-            // an alternative approach would be to apply notification changes to cached local data, but this
-            // is more complex and may result in inconsistencies
-            ajaxGet(contactListUri, "vnd.ccp.eve.ContactCollection-v1", renderContactList);
+    // Build list item.
+    function buildListItem() {
+        return $(document.createElement('li')).addClass('dictionaryItem');
+    }
 
-            // skip this message next time response is polled.
-            notificationStartIndex = i + 1;
+    // Build span containing name with name class.
+    function buildListName(name, description) {
+        span = $(document.createElement('span')).addClass('name').append(name);
+	if (description) {
+	    span.attr('title', description);
+	}
+	return span;
+    }
+
+    // Build unordered list from object.
+    function buildListFromObject(data, schema) {
+        var prop, item, list = document.createElement('ul');
+
+	// TODO: Validate data by checking that schema.type === 'object'
+
+        // Loop over object properties.
+        for (prop in data) {
+
+            // Exclude "self" links and names if used in self links.
+            if (data.hasOwnProperty(prop) &&
+		prop !== "href" &&
+		(prop !== "name" || data.href === undefined) &&
+		(!prop.match(/_str$/))) { // TODO: Remove redundant *_str elements from representations.
+                item = buildListItem();
+
+                if (isLink(data[prop])) {
+
+                    // Link has name, so use property name as label, otherwise use property name as link text.
+                    if(data[prop].name) {
+                        item.append(buildListName(prop));
+                    }
+                    item.append(buildLink(data[prop], prop));
+
+                } else {
+
+                    // Recurse over child data.
+                    item.append(buildListName(prop, schema.properties[prop].description))
+                        .append($(document.createElement('span'))
+                             .addClass('value')
+				.append(buildElement(data[prop], schema.properties[prop])));
+                }
+            }
+            $(list).prepend(item);
         }
 
-        // if responses is too long, reconnect to free response memory
-        if (lines.length > 100) {
-
-            clearInterval(notificationPollTimer);
-            notificationRequest.abort();
-            requestNotifications();
+        // Add "self" link to top of list.
+        if(data.href) {
+            $(list).prepend(buildListItem().append(buildLink(data, undefined)));
         }
+
+        return $(list);
     }
 
-    // Follow contact list hyperlink in character
-    function getContacts(character) {
-
-        // TODO: restore this once we have notifications again...
-        //notificationUri = character.notifications.href;
-        //requestNotifications();
-
-        window.location.hash = character.contacts.href;
+    // Determine data type and build appropriate element.
+    function buildElement(data, schema) {
+        if(isArray(data)) {
+            return buildListFromArray(data, schema);
+        }
+        if(isObject(data)) {
+            return buildListFromObject(data, schema);
+        }
+        return buildElementFromPrimitive(data, schema);
     }
 
-    // Follow authorized character hyperlink in api root
-    function getCharacter(apiRoot) {
-        // searchUri = apiRoot.search.href; TODO: restore this once we have a decent search implementation...
-        ajaxGet(apiRoot.character.href, "vnd.ccp.eve.Character-v3", getContacts);
+    // Show error message in main data pane.
+    function displayError(error) {
+	$("#content").hide();
+	$("#error").text(error).show();
     }
 
-    // Follow decode hyperlink in api root (TODO: Remove decode resource, which doesn't model anything in EVE)
-    function getDecode(apiRoot) {
-        ajaxGet(apiRoot.decode.href, "vnd.ccp.eve.Options-v1", getCharacter);
+    // Request uri and render as HTML.
+    function render(uri) {
+        if (uri.indexOf("http") !== 0) {
+            displayError("Addresses must be absolute");
+            return;
+        }
+	$.ajax(uri, {
+		"method": "OPTIONS",
+		"dataType": "text"
+	}).success(function(optionsData, optionsStatus, optionsXhr) {
+		$.getJSON(uri, function(data, status, xhr) {
+			var contentType, representationName, schema, dataUri, fileName, representationSchema;			
+			contentType = xhr.getResponseHeader("Content-Type");
+			representationName = contentType.replace("; charset=utf-8", ""); // HACK(jimp): proper parsing.
+			$("#representationName").text(representationName);
+			schema = crestschema.jsonSchemaFromCrestOptions(optionsData);
+			representationSchema = schema.GET[representationName];
+			$("#data").children().replaceWith(buildElement(data, representationSchema));
+			dataUri = "data:application/json;charset=utf-8," +
+			    encodeURIComponent(JSON.stringify(representationSchema, null, 4));
+			fileName = representationName.
+			    replace('application/vnd.ccp.eve.','').
+			    replace('+', '.');
+			$("#schema").attr("href", dataUri).attr("download", fileName);
+			bindLinks();
+			$("#error").hide();
+			$("#content").show();
+		});
+	});
     }
 
-    // Request api root
-    function getRoot() {
-        ajaxGet(server + "/", "vnd.ccp.eve.Api-v3", getDecode);
+    // Extract value from oauth formatted hash fragment.
+    function extractFromHash(name, hash) {
+        var match = hash.match(new RegExp(name + "=([^&]+)"));
+        return !!match && match[1];
     }
-
-    // Load new API path when hash fragment changes.
-    window.onhashchange = function() {
-        contactListUri = window.location.hash.substring(1);
-        ajaxGet(contactListUri, "vnd.ccp.eve.ContactCollection-v2", renderContactList);
-    };
 
     // Generate an RFC4122 version 4 UUID
     function uuidGen() {
@@ -323,64 +232,51 @@
         });
     }
 
-    // Extract value from oauth formatted hash fragment.
-    function extractFromHash(name, hash) {
-        var match = hash.match(new RegExp(name + "=([^&]+)"));
-        return !!match && match[1];
+    function ajaxSetup(token) {
+        var headers = {
+            "Accept": "application/json, charset=utf-8"
+        };
+        if (token) {
+            headers.Authorization = "Bearer " + token;
+        }
+        $.ajaxSetup({
+            accepts: "application/json, charset=utf-8",
+            crossDomain: true,
+            type: "GET",
+            dataType: "json",
+            headers: headers,
+            error: function (xhr, status, error) {
+                displayError(error);
+            }
+        });
     }
 
-     // Request OAuth token or API root on load.
     $(document).ready(function() {
 
-        var hash = document.location.hash;
-        token = extractFromHash("access_token", hash);
+        var hash = window.location.hash;
+        var token = extractFromHash("access_token", hash);
 
         if (token) {
 
             // Check CSRF token in state matches token saved in cookie
             if(extractFromHash("state", hash) !== $.cookie(csrfTokenName)) {
-                $("#errorDialog").contents().remove();
-                $("#errorDialog").append("CSRF token mismatch");
-                $("#errorDialog").dialog();
+                displayError("CSRF token mismatch");
                 return;
             }
 
-            // Delete CSRF token cookie.
+            // Restore hash.
+            window.location.hash = $.cookie(hashTokenName);
+
+            // Delete cookies.
             $.cookie(csrfTokenName, null);
+            $.cookie(hashTokenName, null);
 
-            // OAuth token received, set default AJAX headers and render API root
-            $.ajaxSetup({
-                accepts: "application/json, charset=utf-8",
-                crossDomain: true,
-                type: "GET",
-                dataType: "json",
-                headers: {
-                    "Accept": "application/json, charset=utf-8",
-                    "Authorization": "Bearer " + token
-                }
-            });
+        } else {
 
-            // Set up default error handler
-            $(document).ajaxError(function (event, xhr, settings) {
-                $("#errorDialog").contents().remove();
-                $("#errorDialog").append(errorTemplate({
-                    status: xhr.status,
-                    url: settings.url,
-                    message: xhr.responseText
-                }));
-                $("#errorDialog").dialog({
-                    minWidth:480
-                });
-            });
-
-            // Load data
-            getRoot();
-        }
-        else {
-
-            // Store CSRF token as cookie
-            var csrfToken = uuidGen();
+	    // Store CSRF token and current hash as cookie
+	    var csrfToken = uuidGen();
             $.cookie(csrfTokenName, csrfToken);
+	    $.cookie(hashTokenName, window.location.hash);
 
             // No OAuth token, request one from the OAuth authentication endpoint
             window.location = authorizationEndpoint +
@@ -389,7 +285,15 @@
                 "&scope=" + scopes +
                 "&redirect_uri=" + redirectUri +
                 "&state=" + csrfToken;
-        }
+	}
+
+        ajaxSetup(token);
+	render(window.location.hash.substring(1));
     });
 
-}()); // End contactjs
+    // Request new URI on hash change.
+    window.onhashchange = function() {
+	render(window.location.hash.substring(1));
+    };
+
+}($, window, document)); // End crestexplorerjs

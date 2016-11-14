@@ -1,39 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.10/themes/ui-darkness/jquery-ui.css"/>
-    <link rel="stylesheet" href="fleetjs.css"/>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0.beta6/handlebars.min.js"></script>
-    <script id="fleet-list-template" type="text/x-handlebars-template">
-        <ul>
-            {{#if previous}}
-            <li><a class="page" href="{{previous.href}}">Previous</a></li>
-            {{/if}}
-            {{#each items}}
-            <li><span class="name">{{this.fleetMember.name}}</span>
-                {{this.fleetMember.shipName}}
-            </li>
-            {{/each}}
-            {{#if next}}
-            <li><a class="page" href="{{next.href}}">Next</a></li>
-            {{/if}}
-        </ul>
-    </script>
-    <script id="error-template" type="text/x-handlebars-template">
-        <p>{{status}} error requesting {{url}}<br/>({{message}})</p>
-    </script>
-    <script src="fleetjs.js"></script>
+  <title="crestexplorerjs"/>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.10/themes/ui-darkness/jquery-ui.css"/>
+  <link rel="stylesheet" href="fleetjs.css"/>
+  <script src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+  <script src="https://rawgit.com/jimpurbrick/crestschema/master/crestschema.js"></script>
+  <script src="xdr-min.js"></script>
+  <script src="fleetjs.js"></script>
 </head>
 <body>
-<div id="wrapper" class="ui-widget-content ui-corner-all center80">
-</div>
-<div id="errorDialog" style="display: none;" title="Error"></div>
-<div id="searchDialog" style="display: none;" title="Search">
-    <div class="center80"><input type="text" id="query"/></div>
-</div>
+  <div id="wrapper" class="ui-widget-content ui-corner-all">
+    <div id="content" hidden>
+      <div id="representationName"></div>
+      <div id="data"><span></span></div>
+      <div><a id="schema">schema</a></div>
+    </div>
+    <div id="error" hidden></div>
+  </div>
 </body>
 </html>
