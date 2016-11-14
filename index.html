@@ -14,13 +14,8 @@
             <li><a class="page" href="{{previous.href}}">Previous</a></li>
             {{/if}}
             {{#each items}}
-            <li><span class="name">{{this.contact.name}}</span>
-                Standing
-                <select class="standing">
-                    {{standing this.standing}}
-                </select>
-                {{watched this.watched}}
-                <a class="remove" href="{{this.href}}" title="Remove">Remove</a>
+            <li><span class="name">{{this.fleetMember.name}}</span>
+                {{this.fleetMember.shipName}}
             </li>
             {{/each}}
             {{#if next}}
