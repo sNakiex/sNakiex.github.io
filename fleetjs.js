@@ -24,56 +24,21 @@
 
     // Configuration parameters
     var server = "https://crest.eveonline.com/"; // API server
-    var redirectUri = "https://sNakiex.github.io"; // client uri
+    var redirectUri = "http://sNakiex.github.io/"; // client uri
     var clientId = "5ebd2d1231cf4adfb9d28bae86f03917"; // OAuth client id
     var csrfTokenName = clientId + "csrftoken";
     var token; // OAuth token
     var authorizationEndpoint = "https://login.eveonline.com/oauth/authorize/"; // OAuth endpoint
-    var scopes = "publicData characterContactsRead characterContactsWrite";
+    var scopes = "publicData fleetRead";
 
     // Client side templates
-    var contactListTemplate = Handlebars.compile($("#contact-list-template").html());
+    var contactListTemplate = Handlebars.compile($("#fleet-list-template").html());
     var errorTemplate = Handlebars.compile($("#error-template").html());
 
     // Notification request
     var notificationRequest = undefined;
     var notificationPollTimer = undefined;
     var notificationStartIndex = 0;
-
-    // Map of standing names to values
-    var standings = {
-        Excellent: 10,
-        Good: 5,
-        Neutral: 0,
-        Bad: -5,
-        Terrible: -10
-    };
-
-    // Template helper used to render a set of standings options
-    Handlebars.registerHelper('standing', function() {
-        var standingName, result = "";
-        for (standingName in standings) {
-            result += "<option";
-            if (this.standing === standings[standingName]) {
-              result += " selected=\"selected\"";
-            }
-            result += ">" + standingName + "</option>";
-        }
-        return new Handlebars.SafeString(result);
-    });
-
-    // Template helper used to render a watched checkbox.
-    Handlebars.registerHelper('watched', function() {
-        var result = "Watched <input type=\"checkbox\" class=\"watched\"";
-        if(this.watched === undefined) {
-            return "";
-        }
-        if(this.watched === true) {
-            result += "checked=\"yes\"";
-        }
-        result += "/>";
-        return new Handlebars.SafeString(result);
-    });
 
     // Cached uris
     var searchUri;
