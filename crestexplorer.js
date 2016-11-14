@@ -27,7 +27,7 @@
   var clientId = "5ebd2d1231cf4adfb9d28bae86f03917"; // OAuth client id
   var csrfTokenName = clientId + "csrftoken";
   var hashTokenName = clientId + "hash";
-  var scopes = "publicData characterLocationRead characterFittingsRead characterContactsRead";
+  var scopes = "publicData fleetRead";
 
   function representationFromMediaType(mediaType) {
     return mediaType.replace('application/vnd.ccp.eve.','').replace('+json', '');
