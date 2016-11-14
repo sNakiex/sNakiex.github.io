@@ -18,19 +18,19 @@
 /*jslint undef: false, browser: true, vars: true, white: true, forin: true, plusplus: true, bitwise: true, eqeq: true, maxerr: 50, indent: 4 */
 /*global Handlebars, $ */
 
-(function () { // Start contactjs
+(function ($, window, document) { // Start crestexplorerjs
 
     "use strict";
 
     // Configuration parameters
-    var server = "https://crest.eveonline.com/"; // API server
     var redirectUri = "https://snakiex.github.io/"; // client uri
     var clientId = "5ebd2d1231cf4adfb9d28bae86f03917"; // OAuth client id
     var csrfTokenName = clientId + "csrftoken";
     var hashTokenName = clientId + "hash";
     var authorizationEndpoint = "https://login.eveonline.com/oauth/authorize/"; // OAuth endpoint
     var scopes = "publicData fleetRead";
-// Bind click handlers to link elements.
+
+    // Bind click handlers to link elements.
     function bindLinks() {
         $(".link").click(function(evt) {
             evt.preventDefault();

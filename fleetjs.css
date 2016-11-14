@@ -1,52 +1,38 @@
-ul
-{
-    padding-left:100px;
-}
-
-li
-{
-    float:none;	
-    list-style-type:none;
-}
-
 body
 {
     font: 1em "Trebuchet MS",sans-serif;
-    background:black url(http://community.eveonline.com/bitmaps/interface/community/bg.jpg);
+    background: black url(https://login.eveonline.com/Images/site-bg.jpg) top right no-repeat;
+    background-attachment: fixed;
+    color: white;
 }
 
-span.name
+td
 {
-    float:left;
-    min-width:200px;
     padding-right:2em;
 }
 
-.arrayItem
+ul
 {
-    margin-bottom:1em;
-}
-
-#characterSelectDialog
-{
-    display:none;
+    list-style-type: none;
 }
 
 #wrapper
 {
-    margin-top:4em;
+    margin:2em;
+    padding-top:1em;
+    padding-right:2em;
+    padding-left:2em;
+    padding-bottom:1em;
+    display:inline-block;
 }
 
-.center80
+.bottom-menu
 {
-    margin-left:auto;
-    margin-right:auto;
-    width:80%;
+    float:right;
+    padding:0.5em;
 }
 
-#query
+.name
 {
-    margin-top:1em;
-    margin-bottom:1em;
-    width:100%;
+    padding-right:0.5em;
 }
