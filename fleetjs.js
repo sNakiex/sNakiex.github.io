@@ -24,7 +24,7 @@
 
     // Configuration parameters
     var server = "https://crest.eveonline.com/"; // API server
-    var redirectUri = "http://sNakiex.github.io/"; // client uri
+    var redirectUri = "https://snakiex.github.io/"; // client uri
     var clientId = "5ebd2d1231cf4adfb9d28bae86f03917"; // OAuth client id
     var csrfTokenName = clientId + "csrftoken";
     var hashTokenName = clientId + "hash";
